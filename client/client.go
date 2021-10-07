@@ -11,29 +11,49 @@ import (
     _ "encoding/json"
 )
 
+type PeerRequest int
+
+const (
+    RegisterRequest PeerRequest = iota
+    FilelistRequest
+    FileLocationsRequest
+    ChunkRegisterRequest
+    FileChunkRequest
+)
+
+var fileSharePtr *string
+var dirPtr *string
+
 func cmdArgs() {
+    fileSharePtr = flag.String("file-to-share", "", "file to share")
+    dirPtr = flag.String("dir-to-share", "", "directory to share")
+    flag.Parse()
+}
+
+func getFilesToShare() string {
+    var ret = ""
+    if *fileSharePtr != "" {
+        ret += *fileSharePtr
+    }
+    if *dirPtr != "" {
+        ret += *dirPtr
+    }
+    return ret
+}
+
+func processPeerRequest() {
+    var line string
+    fmt.Scanln(&line)
 
 }
 
 func main() {
-    //args := os.Args[1:]
-    fileSharePtr := flag.String("file-to-share", "", "file to share")
-    dirPtr := flag.String("dir-to-share", "", "directory to share")
-    //fileDownloadPtr := flag.String()
-
-    flag.Parse()
-    if *fileSharePtr != "" {
-        fmt.Println("file: ", *fileSharePtr)
-    }
-    if *dirPtr != "" {
-        fmt.Println("dir: ", *dirPtr)
-    }
+    cmdArgs()
 
     conn := connect.ConnectToServer("localhost", "9527")
-    //msg := "I am hungry\n"
-    //connect.SendMsg(conn, []byte(msg))
+
     connect.SendRegisterRequest(conn, []string{"HelloWorld"}, []int{1024})
-    reponse := connect.RecvMsg(conn, 0)
-    fmt.Println(string(reponse))
+    _ = connect.RecvMsg(conn, 0)
+
 }
 

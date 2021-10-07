@@ -93,13 +93,20 @@ var PeerRequestStr = [...]string{ "Register Request",
                                   "File Locations Request",
                                   "Chunk Register Request",
                                   "File Chunk Request" }
+/* Status */
+var Character string
+
 /* Shared Resources */
 var fileList = list.New()
 var fileLocMap = make(map[string]file_loc_t)
 var registerTable = map[string]interface{}{
     "" : nil,
 }
-/********************/
+/*------------------------------------------*/
+
+/* Peer Resources */
+
+/*------------------------------------------*/
 
 func max(x, y int) int {
     if x < y {
@@ -406,9 +413,45 @@ func EncodeFileListRequest() []byte {
     var req_type PeerRequest = Filelist_Request
     var req_str string
     req_str = strconv.Itoa(int(req_type)) + ";" + "\n"
+    fmt.Println("Encode File List Request: ", req_str)
+    return []byte(req_str)
+}
 
-    fmt.Println("Encode Register Request: ", req_str)
+func EncodeFileLocationsRequest(filename string) []byte {
+    var req_type PeerRequest = File_Locations_Request
+    var req_str string
+    var req = File_location_request_t {
+        filename,
+    }
+    req_bytes, _ := json.Marshal(&req)
+    req_str = strconv.Itoa(int(req_type)) + ";" + string(req_bytes) + "\n"
+    fmt.Println("Encode File Locations Request: ", req_str)
+    return []byte(req_str)
+}
 
+func EncodeChunkRegisterRequest(filename string, chunk_id int) []byte {
+    var req_type PeerRequest = Chunk_Register_Request
+    var req_str string
+    var req = Chunk_register_request_t {
+        filename,
+        chunk_id,
+    }
+    req_bytes, _ := json.Marshal(&req)
+    req_str = strconv.Itoa(int(req_type)) + ";" + string(req_bytes) + "\n"
+    fmt.Println("Encode Chunk Register Request: ", req_str)
+    return []byte(req_str)
+}
+
+func EncodeFileChunkRequest(filename string, chunk_id int) []byte {
+    var req_type PeerRequest = File_Chunk_Request
+    var req_str string
+    var req = File_chunk_request_t {
+        filename,
+        chunk_id,
+    }
+    req_bytes, _ := json.Marshal(&req)
+    req_str = strconv.Itoa(int(req_type)) + ";" + string(req_bytes) + "\n"
+    fmt.Println("Encode File Chunk Request: ", req_str)
     return []byte(req_str)
 }
 

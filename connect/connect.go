@@ -22,14 +22,13 @@ func SendMsg(conn net.Conn, msg []byte) {
     //log.Println("Server relay: ", re)
 }
 
-func RecvMsg(conn net.Conn, req messages.PeerRequest) []byte {
+func RecvMsg(conn net.Conn, req messages.PeerRequest) interface{} {
     log.Printf("RecvMsg (%s)", conn.RemoteAddr().String())
     msg, _ := bufio.NewReader(conn).ReadBytes('\n')
-    
+
     res := messages.ParseResponse(req, msg)
     fmt.Printf("RecvMsg (%s) %v\n", conn.RemoteAddr().String(), res.(messages.Register_response_t))
-
-    return msg
+    return res
 }
 
 func ConnectToServer(ip string, port string) net.Conn {
@@ -58,11 +57,30 @@ func SendRegisterRequest(conn net.Conn, files []string, lengths []int) {
     SendMsg(conn, req)
 }
 
-func SenfFileListRequest(conn net.Conn) {
+func SendFileListRequest(conn net.Conn) {
     fmt.Println("Send File List Request ", conn.RemoteAddr().String())
     req := messages.EncodeFileListRequest()
     SendMsg(conn, req)
 }
+
+func SendFileLocationsRequest(conn net.Conn, filename string) {
+    fmt.Println("Send File Locations Request", conn.RemoteAddr().String())
+    req := messages.EncodeFileLocationsRequest(filename)
+    SendMsg(conn, req)
+}
+
+func SendChunkRegisterRequest(conn net.Conn, filename string, chunk_id int) {
+    fmt.Println("Send Chunk Register Request", conn.RemoteAddr().String())
+    req := messages.EncodeChunkRegisterRequest(filename, chunk_id)
+    SendMsg(conn, req)
+}
+
+func SendFileChunkRequest(conn net.Conn, filename string, chunk_id int) {
+    fmt.Println("Send File Chunk Request", conn.RemoteAddr().String())
+    req := messages.EncodeFileChunkRequest(filename, chunk_id)
+    SendMsg(conn, req)
+}
+
 
 func RunServer(ip string, port string) {
     /* tcp connection */
