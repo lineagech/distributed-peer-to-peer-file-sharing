@@ -11,6 +11,10 @@ import (
     _ "encoding/json"
 )
 
+func cmdArgs() {
+
+}
+
 func main() {
     //args := os.Args[1:]
     fileSharePtr := flag.String("file-to-share", "", "file to share")

@@ -81,8 +81,7 @@ func RunServer(ip string, port string) {
             fmt.Println("Error connecting:", err.Error())
             return
         }
-        fmt.Println("Client connected")
-        fmt.Println("Client " + c.RemoteAddr().String() + " connected.")
+        fmt.Println("Peer " + c.RemoteAddr().String() + " connected.")
 
         // handle connection concurrently
         go handleConnection(c)
