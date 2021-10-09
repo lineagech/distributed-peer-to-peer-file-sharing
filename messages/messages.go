@@ -76,7 +76,7 @@ type Chunk_register_request_t struct {
 }
 
 type Chunk_register_response_t struct {
-    succ int
+    Succ int
 }
 
 type File_chunk_request_t struct {
@@ -85,7 +85,7 @@ type File_chunk_request_t struct {
 }
 
 type File_chunk_response_t struct {
-    bytes []byte
+    Bytes []byte
 }
 
 var PeerRequestStr = [...]string{ "Register Request",
@@ -285,24 +285,24 @@ func register_file_chunk(peer_addr string, filename string, chunk_id int) Chunk_
     
     // check the chunk is valid or not
     if (chunk_id < 0) {
-        return Chunk_register_response_t{succ: 0}
+        return Chunk_register_response_t{Succ: 0}
     }
     num_chunks := (get_file_length(filename)+(CHUNK_SIZE-1)) / CHUNK_SIZE
     if (chunk_id >= num_chunks) {
-        return Chunk_register_response_t{succ: 0}
+        return Chunk_register_response_t{Succ: 0}
     }
 
     // check if already registered
     for _, s := range file_loc.Chunks_loc[chunk_id] {
         // found 
         if (strings.Compare(s, peer_addr) == 0) {
-            return Chunk_register_response_t{succ: 1}
+            return Chunk_register_response_t{Succ: 1}
         }
     }
 
     // if not, insert the peer address
     file_loc.Chunks_loc[chunk_id] = append(file_loc.Chunks_loc[chunk_id], peer_addr)
-    return Chunk_register_response_t{succ: 1}
+    return Chunk_register_response_t{Succ: 1}
 }
 
 func get_file_chunk_locally(filename string, chunk_id int) File_chunk_response_t {
@@ -325,7 +325,7 @@ func get_file_chunk_locally(filename string, chunk_id int) File_chunk_response_t
     }
         
     var res = File_chunk_response_t {
-        bytes: make([]byte, read_length),
+        Bytes: make([]byte, read_length),
     }
     
     // read from the local file
@@ -337,9 +337,9 @@ func get_file_chunk_locally(filename string, chunk_id int) File_chunk_response_t
     _, err = f.Seek(int64(chunk_id)*int64(CHUNK_SIZE), 0)
     check_err(err)
 
-    _, err = f.Read(res.bytes)
+    _, err = f.Read(res.Bytes)
     check_err(err)
-    fmt.Println("Read Content for %s (chunk id %d): %s\n", filename, chunk_id, string(res.bytes))
+    fmt.Println("Read Content for %s (chunk id %d): %s\n", filename, chunk_id, string(res.Bytes))
 
     return res
 }
