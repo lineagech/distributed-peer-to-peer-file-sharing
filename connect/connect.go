@@ -26,16 +26,20 @@ func RecvMsg(conn net.Conn, req messages.PeerRequest) interface{} {
     log.Printf("RecvMsg (%s)", conn.RemoteAddr().String())
     msg, _ := bufio.NewReader(conn).ReadBytes('\n')
 
-    res := messages.ParseResponse(req, msg)
-    fmt.Printf("RecvMsg (%s) %v\n", conn.RemoteAddr().String(), res.(messages.Register_response_t))
+    res := messages.ParseResponse(req, msg[0:len(msg)-1])
+    //log.Printf("RecvMsg (%s) %v\n", conn.RemoteAddr().String(), res.(messages.Register_response_t))
     return res
 }
 
-func ConnectToServer(ip string, port string) net.Conn {
-    fmt.Println("Connecting to ", ip+":"+port)
+//func ConnectToServer(dest_ip string, dest_port string, src_ip string, src_port string) net.Conn {
+func ConnectToServer(dest_ip string, dest_port string) net.Conn {
+    fmt.Println("Connecting to ", dest_ip+":"+dest_port)
+    //server, _ := net.ResolveTCPAddr("tcp", dest_ip+":"+dest_port)
+    //client, _ := net.ResolveTCPAddr("tcp", src_ip+":"+src_port)
     var conn net.Conn
     for {
-        c, err := net.Dial("tcp", ip+":"+port)
+        c, err := net.Dial("tcp", dest_ip+":"+dest_port)
+        //c, err := net.DialTCP("tcp", client, server)
         if err != nil {
             fmt.Println("Error connecting:", err.Error())
             time.Sleep(5 * time.Second)
@@ -51,9 +55,9 @@ func ConnectToServer(ip string, port string) net.Conn {
     return conn
 }
 
-func SendRegisterRequest(conn net.Conn, files []string, lengths []int) {
+func SendRegisterRequest(conn net.Conn, files []string, lengths []int, peer_addr string) {
     fmt.Println("Send Register Request ", conn.RemoteAddr().String(), files, lengths)
-    req := messages.EncodeRegisterRequest(files, lengths)
+    req := messages.EncodeRegisterRequest(files, lengths, peer_addr)
     SendMsg(conn, req)
 }
 
@@ -64,14 +68,14 @@ func SendFileListRequest(conn net.Conn) {
 }
 
 func SendFileLocationsRequest(conn net.Conn, filename string) {
-    fmt.Println("Send File Locations Request", conn.RemoteAddr().String())
+    fmt.Println("Send File Locations Request for %s", conn.RemoteAddr().String(), filename)
     req := messages.EncodeFileLocationsRequest(filename)
     SendMsg(conn, req)
 }
 
-func SendChunkRegisterRequest(conn net.Conn, filename string, chunk_id int) {
+func SendChunkRegisterRequest(conn net.Conn, filename string, chunk_id int, peer_addr string) {
     fmt.Println("Send Chunk Register Request", conn.RemoteAddr().String())
-    req := messages.EncodeChunkRegisterRequest(filename, chunk_id)
+    req := messages.EncodeChunkRegisterRequest(filename, chunk_id, peer_addr)
     SendMsg(conn, req)
 }
 
@@ -119,7 +123,7 @@ func handleConnection(conn net.Conn) {
     //    log.Printf("%d : %c\n", i, buffer[i])
     //}
     // log is safe for multi-threading
-    log.Println("Client message:", string(buffer[:len(buffer)-1]))
+    log.Println("Client message:", string(buffer[:len(buffer)-1]), conn.RemoteAddr().String())
     
     // handle the reqeust
     response := messages.HandlePeerRequest(buffer, conn.RemoteAddr().String())
