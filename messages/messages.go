@@ -103,6 +103,8 @@ var PeerRequestStr = [...]string{ "Register Request",
 var Character string
 
 /* Shared Resources */
+var snapshotCallback func (string,int) = nil
+var fileLocSnapshotCallback func (string, int, []string) = nil
 var fileList = list.New()
 var fileLocMap = map[string]file_loc_t {
 
@@ -231,8 +233,13 @@ func handle_register(msg []byte, peerAddr string) Register_response_t {
         //fmt.Println("File ", filename_str, ", Length ", length)
         insertToFileList(filename_str, length, req.PeerAddr)
         response.Register_succ[i] = 1
+
+        // snaphsot
+        if snapshotCallback != nil {
+            snapshotCallback(filename_str, length)
+        }
     }
-    
+
     printFileList()
     return response
 }
@@ -345,6 +352,12 @@ func register_file_chunk(peer_addr string, filename string, chunk_id int) Chunk_
 
     // if not, insert the peer address
     file_loc.Chunks_loc[chunk_id] = append(file_loc.Chunks_loc[chunk_id], peer_addr)
+
+    // snaphost
+    if fileLocSnapshotCallback != nil {
+        fileLocSnapshotCallback(filename, chunk_id, file_loc.Chunks_loc[chunk_id])
+    }
+
     return Chunk_register_response_t{Succ: 1}
 }
 
@@ -606,4 +619,29 @@ func ParseResponse(req PeerRequest, msg []byte) interface{} {
 
     }
     return nil
+}
+
+func RegisterSnapshotCallBack(callback func(string, int)){
+    snapshotCallback = callback
+}
+
+func RegisterFileLocSnapshotCallBack(callback func(string, int, []string)) {
+    fileLocSnapshotCallback = callback
+}
+
+func SetP2PServerFileList(file_list []string, length []int) {
+    for i, filename := range file_list {
+        insertToFileList(filename, length[i], "")
+    }
+    printFileList()
+}
+
+func SetFileLoc(filename string, loc map[int][]string) {
+    fileLocMap[filename] = file_loc_t {
+        //make(map[int][]string),
+        loc,
+    }
+    fmt.Println("Set File Locations for ", filename)
+    fmt.Println(loc)
+    //fileLocMap[filename].Chunks_loc = loc
 }
