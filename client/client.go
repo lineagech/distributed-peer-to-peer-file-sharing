@@ -16,6 +16,7 @@ import (
     "sync"
     "snapshot"
     "golang.org/x/sys/unix"
+    "io/ioutil"
 )
 
 type UserInput int
@@ -120,13 +121,19 @@ func cmdArgs() {
     flag.Parse()
 }
 
-func getFilesToShare() string {
-    var ret = ""
+func getFilesToShare() []string {
+    var ret []string
     if *fileSharePtr != "" {
-        ret += *fileSharePtr
+        ret = append(ret, *fileSharePtr)
     }
     if *dirPtr != "" {
-        ret += *dirPtr
+        // get dir contents 
+        files, _ := ioutil.ReadDir(*dirPtr)
+        for _, file := range files {
+            if file.IsDir() == false {
+                ret = append(ret, file.Name())
+            }
+        }
     }
     return ret
 }
@@ -519,6 +526,15 @@ func resumeProcess() {
     fmt.Println("\n----------------------- Resume Process Done ----------------------\n")
 }
 
+func shareUserFiles() {
+    files := getFilesToShare()
+    if len(files) != 0 {
+        for _, filename := range files {
+            shareFile(filename)
+        }
+    }
+}
+
 func main() {
     cmdArgs()
     if len(*ipAddr) == 0 {
@@ -530,6 +546,7 @@ func main() {
         resumeProcess()
     }
     go connect.RunServer(PeerAddr[0], PeerAddr[1])
+    shareUserFiles()
     processPeerRequest()
     //_ = connect.RecvMsg(conn, 0)
 
