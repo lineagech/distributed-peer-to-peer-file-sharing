@@ -178,7 +178,7 @@ func insertToFileList(filename_str string, length int, peer_addr string) {
 }
 
 func handle_register(msg []byte, peerAddr string) Register_response_t {
-    fmt.Println("Handle register request from peer ", peerAddr)
+    //fmt.Println("Handle register request from peer ", peerAddr)
     _, found := registerTable[peerAddr]
     if found != true {
         registerTable[peerAddr] = map[string]int{}
@@ -196,7 +196,7 @@ func handle_register(msg []byte, peerAddr string) Register_response_t {
     //num_files, err := strconv.ParseInt(string(num_files_str), 10, 64)
     req := Register_request_t{}
     json.Unmarshal(msg, &req)
-    fmt.Println("Request Content: ", req)
+    //fmt.Println("Request Content: ", req)
 
     //num_files, _ := strconv.ParseInt(string(req.Num_files), 10, 64)
     num_files := req.Num_files
@@ -228,7 +228,7 @@ func handle_register(msg []byte, peerAddr string) Register_response_t {
         //length, _ := strconv.ParseInt(req.length[i], 10, 64)
         length := req.Length[i]
 
-        fmt.Println("File ", filename_str, ", Length ", length)
+        //fmt.Println("File ", filename_str, ", Length ", length)
         insertToFileList(filename_str, length, req.PeerAddr)
         response.Register_succ[i] = 1
     }
@@ -258,11 +258,11 @@ func handle_filelist() Filelist_response_t {
 func handle_file_locations(msg []byte) File_location_response_t {
     var req File_location_request_t
     var res File_location_response_t
- 
+
     json.Unmarshal(msg, &req)
- 
+
     res = get_file_locations(req.Filename)
-    
+
     return res
 }
 
@@ -289,12 +289,16 @@ func get_file_locations(filename string) File_location_response_t{
     var res_loc = File_location_response_t {
         make(map[int][]string),
     }
+    _, found := fileLocMap[filename]
+    if found == false {
+        return res_loc
+    }
 
-    log.Printf("Get File Locations for %s\n", filename)
+    //log.Printf("Get File Locations for %s\n", filename)
     file_loc := fileLocMap[filename]
     num_chunks := (get_file_length(filename)+(CHUNK_SIZE-1)) / CHUNK_SIZE
     
-    log.Printf("Number of Chunks %d\n", num_chunks)
+    //log.Printf("Number of Chunks %d\n", num_chunks)
     for i := 0; i < num_chunks; i++ {
        res_loc.Chunks_loc[i] = file_loc.Chunks_loc[i]
     }
@@ -310,7 +314,7 @@ func register_file_chunk(peer_addr string, filename string, chunk_id int) Chunk_
         }
     }
 
-    log.Printf("register file chunk for %s (%s, %d-th chunk)\n", peer_addr, filename, chunk_id)
+    //log.Printf("register file chunk for %s (%s, %d-th chunk)\n", peer_addr, filename, chunk_id)
 
     // check the chunk is valid or not
     if (chunk_id < 0) {
@@ -337,7 +341,7 @@ func register_file_chunk(peer_addr string, filename string, chunk_id int) Chunk_
         }
     }
 
-    log.Printf("Insert peer addr for %s (%s, %d-th chunk)\n", peer_addr, filename, chunk_id)
+    //log.Printf("Insert peer addr for %s (%s, %d-th chunk)\n", peer_addr, filename, chunk_id)
 
     // if not, insert the peer address
     file_loc.Chunks_loc[chunk_id] = append(file_loc.Chunks_loc[chunk_id], peer_addr)
@@ -408,8 +412,8 @@ func get_file_chunk_locally(filename string, chunk_id int) File_chunk_response_t
             read_length = file_length - chunk_id*CHUNK_SIZE
         }
     }
-    
-    log.Printf("Read Length for (%s, %d-th chunk) would be %d\n", filename, chunk_id, read_length)
+
+    //log.Printf("Read Length for (%s, %d-th chunk) would be %d\n", filename, chunk_id, read_length)
 
     var res = File_chunk_response_t {
         Bytes: make([]byte, read_length),
@@ -418,22 +422,22 @@ func get_file_chunk_locally(filename string, chunk_id int) File_chunk_response_t
     // read from the local file
     //abs_path, _ := filepath.Abs("./"+filename)
     if complete_file_exists {
-        log.Printf("%s exists locally.\n", filename)
+        //log.Printf("%s exists locally.\n", filename)
         f, err := os.Open(filename)
         check_err(err)
 
         // move to desired location, seek: 0->from origin, 1->from current position
-        log.Printf("%s seek locally.\n", filename)
+        //log.Printf("%s seek locally.\n", filename)
         _, err = f.Seek(int64(chunk_id)*int64(CHUNK_SIZE), 0)
         check_err(err)
 
-        log.Printf("%s read locally.\n", filename)
+        //log.Printf("%s read locally.\n", filename)
         _, err = f.Read(res.Bytes)
         check_err(err)
-        fmt.Println("Read Content for %s (chunk id %d): %s\n", filename, chunk_id, string(res.Bytes))
+        //fmt.Println("Read Content for %s (chunk id %d): %s\n", filename, chunk_id, string(res.Bytes))
     }
 
-    log.Println(string(res.Bytes))
+    //log.Println(string(res.Bytes))
 
     /*
     f, err := os.Open(chunk_name)
@@ -458,7 +462,7 @@ func HandlePeerRequest(msg []byte, peerAddr string) []byte {
     s, _ := msg_reader.ReadBytes(';')
     i, _ := strconv.ParseInt(string(s[0:len(s)-1]), 10, 32)
     req = PeerRequest(i)
-    log.Println("Handle Peer Request ", req)
+    //log.Println("Handle Peer Request ", req)
     msg, _ = msg_reader.ReadBytes('\n');
 
     switch req {
@@ -466,26 +470,26 @@ func HandlePeerRequest(msg []byte, peerAddr string) []byte {
         fmt.Println("Handle Peer Request: Register Request", string(msg))
         res := handle_register(msg, peerAddr)
         res_byte, _ := json.Marshal(&res)
-        fmt.Println("Response for the register request ", string(res_byte))
+        //fmt.Println("Response for the register request ", string(res_byte))
         return []byte(string(res_byte)+"\n")
     case Filelist_Request:
         fmt.Println("Handle Peer Request: File List Request")
         res := handle_filelist()
         //res := handle_file_list()
         res_byte, _ := json.Marshal(res)
-        fmt.Println("Response for the file list request", string(res_byte))
+        //fmt.Println("Response for the file list request", string(res_byte))
         return []byte(string(res_byte)+"\n")
     case File_Locations_Request:
         fmt.Println("Handle Peer Request: File Locations Request")
         res := handle_file_locations(msg)
         res_byte, _ := json.Marshal(&res)
-        fmt.Println("Response for the file locations request", string(res_byte))
+        //fmt.Println("Response for the file locations request", string(res_byte))
         return []byte(string(res_byte)+"\n")
     case Chunk_Register_Request:
         fmt.Println("Handle Peer Request: Chunk Register Request")
         res := handle_chunk_register(msg)
         res_byte, _ := json.Marshal(&res)
-        fmt.Println("Response for the chunk register request", string(res_byte))
+        //fmt.Println("Response for the chunk register request", string(res_byte))
         return []byte(string(res_byte)+"\n")
     case File_Chunk_Request:
         fmt.Println("Handle Peer Request: File Chunk Request")
@@ -507,13 +511,13 @@ func EncodeRegisterRequest(files []string, lengths []int, peer_addr string) []by
         peer_addr,
     }
     req_bytes, _ := json.Marshal(&req)
-    fmt.Println("Encode Register Request: ", string(req_bytes))
+    //fmt.Println("Encode Register Request: ", string(req_bytes))
     
     var req_type PeerRequest = Register_Request
     var req_str string
     req_str = strconv.Itoa(int(req_type)) + ";" + string(req_bytes) + "\n"
     
-    fmt.Println("Encode Register Request: ", req_str)
+    //fmt.Println("Encode Register Request: ", req_str)
 
     return []byte(req_str)
 }
@@ -522,7 +526,7 @@ func EncodeFileListRequest() []byte {
     var req_type PeerRequest = Filelist_Request
     var req_str string
     req_str = strconv.Itoa(int(req_type)) + ";" + "\n"
-    fmt.Println("Encode File List Request: ", req_str)
+    //fmt.Println("Encode File List Request: ", req_str)
     return []byte(req_str)
 }
 
@@ -534,7 +538,7 @@ func EncodeFileLocationsRequest(filename string) []byte {
     }
     req_bytes, _ := json.Marshal(&req)
     req_str = strconv.Itoa(int(req_type)) + ";" + string(req_bytes) + "\n"
-    fmt.Println("Encode File Locations Request: ", req_str)
+    //fmt.Println("Encode File Locations Request: ", req_str)
     return []byte(req_str)
 }
 
@@ -548,7 +552,7 @@ func EncodeChunkRegisterRequest(filename string, chunk_id int, peer_addr string)
     }
     req_bytes, _ := json.Marshal(&req)
     req_str = strconv.Itoa(int(req_type)) + ";" + string(req_bytes) + "\n"
-    fmt.Println("Encode Chunk Register Request: ", req_str)
+    //fmt.Println("Encode Chunk Register Request: ", req_str)
     return []byte(req_str)
 }
 
@@ -561,35 +565,35 @@ func EncodeFileChunkRequest(filename string, chunk_id int) []byte {
     }
     req_bytes, _ := json.Marshal(&req)
     req_str = strconv.Itoa(int(req_type)) + ";" + string(req_bytes) + "\n"
-    fmt.Println("Encode File Chunk Request: ", req_str)
+    //fmt.Println("Encode File Chunk Request: ", req_str)
     return []byte(req_str)
 }
 
 func ParseResponse(req PeerRequest, msg []byte) interface{} {
     switch req {
     case Register_Request:
-        fmt.Println("Handle Peer Response: Register Request Response", string(msg))
+        //fmt.Println("Handle Peer Response: Register Request Response", string(msg))
         var response Register_response_t
         json.Unmarshal(msg, &response)
-        fmt.Println("Response content: ", response)
+        //fmt.Println("Response content: ", response)
         return response
     case Filelist_Request:
-        fmt.Println("Handle Peer Response: File List Response", string(msg))
+        //fmt.Println("Handle Peer Response: File List Response", string(msg))
         var response Filelist_response_t
         json.Unmarshal(msg, &response)
-        fmt.Println("Response content: ", response)
+        //fmt.Println("Response content: ", response)
         return response
     case File_Locations_Request:
-        fmt.Println("Handle Peer Response: File Locations Response", string(msg))
+        //fmt.Println("Handle Peer Response: File Locations Response", string(msg))
         var response File_location_response_t
         json.Unmarshal(msg, &response)
-        fmt.Println("Response content: ", response)
+        //fmt.Println("Response content: ", response)
         return response
     case Chunk_Register_Request:
-        fmt.Println("Handle Peer Response: Chunk Register Response", string(msg))
+        //fmt.Println("Handle Peer Response: Chunk Register Response", string(msg))
         var response Chunk_register_response_t
         json.Unmarshal(msg, &response)
-        fmt.Println("Response content: ", response)
+        //fmt.Println("Response content: ", response)
         return response
     case File_Chunk_Request:
         //fmt.Println("Handle Peer Response: File Chunk Response", string(msg))
