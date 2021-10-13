@@ -55,6 +55,8 @@ var fileSharePtr *string
 var dirPtr *string
 var resumePtr *bool
 
+var filePrefix = make(map[string]string)
+
 func dummyFunc(filename string, chunk_id int, locations []string) {
     log.Printf("%s: %s, %d\n", PeerName, filename, chunk_id)
     log.Println(locations)
@@ -121,6 +123,16 @@ func cmdArgs() {
     flag.Parse()
 }
 
+func getDirPath(filename string) string {
+    var ret string
+    _, found := filePrefix[filename]
+    if found != true {
+        return ""
+    }
+    ret = filePrefix[filename]+"/"
+    return ret
+}
+
 func getFilesToShare() []string {
     var ret []string
     if *fileSharePtr != "" {
@@ -132,6 +144,7 @@ func getFilesToShare() []string {
         for _, file := range files {
             if file.IsDir() == false {
                 ret = append(ret, file.Name())
+                filePrefix[file.Name()] = *dirPtr
             }
         }
     }
@@ -174,8 +187,11 @@ func assembleChunks(filename string, num_chunks int) {
 func getFileInfo(filename string) os.FileInfo {
     file_info, err := os.Stat(filename)
     if err != nil {
-        fmt.Println("get file info error!")
-        return nil
+        file_info, err = os.Stat(getDirPath(filename)+filename)
+        if err != nil {
+            fmt.Println("get file info error!", filename)
+            return nil
+        }
     }
     return file_info
 }
@@ -243,11 +259,11 @@ func registerChunk(filename string, chunk_id int, peer_addr string) {
             continue
         }
         recv_msg, err := connect.RecvMsg(conn, messages.Chunk_Register_Request)
-        chunk_register_resp := recv_msg.(messages.Chunk_register_response_t)
         if err != nil {
             conn.Close()
             continue
         }
+        chunk_register_resp := recv_msg.(messages.Chunk_register_response_t)
 
         if chunk_register_resp.Succ == 1 {
             //log.Printf("%s: Register Chunk for %s %d-th chunk Succeeded\n", PeerName, filename, chunk_id)
@@ -281,11 +297,11 @@ func recvChunk(wg *sync.WaitGroup, filename string, chunk_id int, locations []st
 
         //log.Printf("%s: Send File Chunk request for %s %d-th Chunk to %s\n", PeerName, filename, chunk_id, dest_peer_addr_str)
         recv_msg, err := connect.RecvMsg(conn, messages.File_Chunk_Request)
-        recv_chunk := recv_msg.(messages.File_chunk_response_t)
         if err != nil {
             conn.Close()
             continue
         }
+        recv_chunk := recv_msg.(messages.File_chunk_response_t)
 
         //log.Printf("%s: Recv File Chunk request for %s %d-th Chunk from %s\n", PeerName, filename, chunk_id, dest_peer_addr_str)
 
@@ -310,7 +326,10 @@ func downloadMissingChunks(filename string) {
 
     /* Get every chunk according to the returned locations */
     _ = connect.SendFileLocationsRequest(conn, filename)
-    recv_msg, _ := connect.RecvMsg(conn, messages.File_Locations_Request)
+    recv_msg, err := connect.RecvMsg(conn, messages.File_Locations_Request)
+    if err != nil {
+        fmt.Println("Download Missing Chunks connection error!")
+    }
     file_loc := recv_msg.(messages.File_location_response_t)
     file_loc_info_arr := make([]file_loc_info_t, len(file_loc.Chunks_loc))
 
@@ -357,11 +376,11 @@ func downloadFile(filename string) {
             continue
         }
         recv_msg, err := connect.RecvMsg(conn, messages.File_Locations_Request)
-        file_loc := recv_msg.(messages.File_location_response_t)
         if err != nil {
             conn.Close()
             continue
         }
+        file_loc := recv_msg.(messages.File_location_response_t)
         if len(file_loc.Chunks_loc) == 0 {
             fmt.Println("Cannot Donwload --- ", filename)
             return
@@ -415,11 +434,11 @@ func shareFile(filename string) {
 
         /* Receive the response */
         recv_msg, err := connect.RecvMsg(conn, messages.Register_Request)
-        register_resp := recv_msg.(messages.Register_response_t)
         if err != nil {
             conn.Close()
             continue
         }
+        register_resp := recv_msg.(messages.Register_response_t)
 
         if register_resp.Register_succ[0] == 0 {
             log.Printf("%s: Register File %s failed!\n", PeerName, filename)
@@ -444,7 +463,10 @@ func getFileList() {
     _ = connect.SendFileListRequest(conn)
 
     /* Receive the response */
-    recv_msg, _ := connect.RecvMsg(conn, messages.Filelist_Request)
+    recv_msg, err := connect.RecvMsg(conn, messages.Filelist_Request)
+    if err != nil {
+        fmt.Println("Get file list connection error!")
+    }
     register_resp := recv_msg.(messages.Filelist_response_t)
     FileList = register_resp
 
@@ -527,6 +549,7 @@ func resumeProcess() {
 }
 
 func shareUserFiles() {
+    messages.RegisterDirPathCallBack(getDirPath)
     files := getFilesToShare()
     if len(files) != 0 {
         for _, filename := range files {

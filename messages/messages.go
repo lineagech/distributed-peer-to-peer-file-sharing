@@ -105,6 +105,7 @@ var Character string
 /* Shared Resources */
 var snapshotCallback func (string,int) = nil
 var fileLocSnapshotCallback func (string, int, []string) = nil
+var dirPathCallback func(string)string = nil
 var fileList = list.New()
 var fileLocMap = map[string]file_loc_t {
 
@@ -386,8 +387,13 @@ func get_src_file_chunk(filename string, chunk_id) File_chunk_response_t {
 func getFileInfo(filename string) os.FileInfo {
     file_info, err := os.Stat(filename)
     if err != nil {
-        fmt.Println("get file info error!")
-        return nil
+        if dirPathCallback != nil {
+            file_info, err = os.Stat(dirPathCallback(filename)+filename)
+        }
+        if err != nil {
+            fmt.Println("get file info error!", filename)
+            return nil
+        }
     }
     return file_info
 }
@@ -436,6 +442,9 @@ func get_file_chunk_locally(filename string, chunk_id int) File_chunk_response_t
     //abs_path, _ := filepath.Abs("./"+filename)
     if complete_file_exists {
         //log.Printf("%s exists locally.\n", filename)
+        if dirPathCallback != nil {
+            filename = dirPathCallback(filename) + filename
+        }
         f, err := os.Open(filename)
         check_err(err)
 
@@ -627,6 +636,10 @@ func RegisterSnapshotCallBack(callback func(string, int)){
 
 func RegisterFileLocSnapshotCallBack(callback func(string, int, []string)) {
     fileLocSnapshotCallback = callback
+}
+
+func RegisterDirPathCallBack(callback func(string)string) {
+    dirPathCallback = callback
 }
 
 func SetP2PServerFileList(file_list []string, length []int) {

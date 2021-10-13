@@ -29,6 +29,7 @@ func RecvMsg(conn net.Conn, req messages.PeerRequest) (interface{}, error) {
     msg, err := bufio.NewReader(conn).ReadBytes('\n')
     if err != nil {
         fmt.Printf("%s: Error %s\n", err.Error())
+        return nil, nil
     }
 
     res := messages.ParseResponse(req, msg[0:len(msg)-1])
